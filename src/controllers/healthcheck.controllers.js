@@ -1,5 +1,5 @@
 import {ApiResponse } from "../utils/api-respose.js";
-import ApiError, {} from "../utils/ApiError.js"
+import ApiError from "../utils/ApiError.js"
 const  healthcheck = async (req, res) => {
     try {
         res.status(200).json(
