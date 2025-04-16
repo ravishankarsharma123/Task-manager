@@ -5,11 +5,13 @@ dotenv.config();
 
 
 
+
+
+
 const sendMail = async(options) => {
     const mailGenerator = new Mailgen({
         theme: 'default',
         product: {
-        
             name: 'Task Manager',
             link: 'https://mailgen.js/'
             
@@ -20,7 +22,20 @@ const sendMail = async(options) => {
     const emailHtml = mailGenerator.generate(options.mailGenContent)
 
 
-    const mail ={
+    const transporter = nodemailer.createTransport({
+        host: process.env.MAILTRAP_SMTP_HOST,
+        port: process.env.MAILTRAP_SMTP_PORT,
+        secure: false, // true for 465, false for other ports
+        auth: {
+            user: process.env.MAILTRAP_SMTP_USER,
+            pass: process.env.MAILTRAP_SMTP_PASS
+        }
+    });
+console.log(emailText)
+// console.log(emailHtml)
+    console.log(options.email)
+
+    const mail = {
         from: process.env.MAIL_FROM,
         to: options.email,
         subject: options.subject,
@@ -36,18 +51,7 @@ const sendMail = async(options) => {
         throw new Error('Unable to send email')
         
     }
-
-    
-    const transporter = nodemailer.createTransport({
-        host: process.env.MAILTRAP_SMTP_HOST,
-        port: process.env.MAILTRAP_SMTP_PORT,
-        secure: false, // true for 465, false for other ports
-        auth: {
-            user: process.env.MAILTRAP_SMTP_USER,
-            pass: process.env.MAILTRAP_SMTP_PASS
-        }
-    })
-}
+};
 
 
 const emailVerificationMailGenContent = (username,verificationUrl) => {

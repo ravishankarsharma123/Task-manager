@@ -2,6 +2,7 @@ import e from 'cors';
 import {body} from 'express-validator';
 
 
+
 const userRegistrationValidator = () =>{
     return [
         // email validation 

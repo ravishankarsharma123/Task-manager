@@ -136,9 +136,9 @@ userSchema.methods.generateTemporaryToken = function () {
     const expiry = Date.now() + 20 * (60 * 1000); // 20 minutes
      
     return {
-        unHashedToken,
-        hashedToken,
-        expiry,
+        unHashedToken, //for sending email
+        hashedToken,   //for saving in db
+        expiry,        //for saving in db
     };
 }
 
