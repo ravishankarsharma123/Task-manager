@@ -66,7 +66,7 @@ const userSchema = new mongoose.Schema({
     forgotPasswordTokenExpiry: {
         type: Date,
         default: null,
-    },
+    }, 
     refreshToken: {
         type: String,
         default: null,
@@ -100,7 +100,7 @@ userSchema.methods.isPasswordMatched = async function (password) {
 };
 
 userSchema.methods.genrateAccessToken = function (){
-    return jwt.sing(
+    return jwt.sign(
         {
             _id: this._id,
             email: this.email,
@@ -116,7 +116,7 @@ userSchema.methods.genrateAccessToken = function (){
 };
 
 userSchema.methods.genrateRefreshToken = function (){
-    return jwt.sing(
+    return jwt.sign(
         {
             _id: this._id,
             email: this.email,

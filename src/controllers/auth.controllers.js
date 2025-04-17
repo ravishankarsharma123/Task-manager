@@ -2,10 +2,9 @@ import { asyncHandler } from "../utils/async-handler.js";
 import ApiError from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/api-respose.js";
 import {userLoginValidator, userRegistrationValidator} from "../validators/index.js"
-import {User} from "../models/users.models.js"
+import {User } from "../models/users.models.js"
 import cookieParser from "cookie-parser";
-import jwt from "jsonwebtoken"
-import crypto from "crypto"
+
 import {emailVerificationMailGenContent, forgotPasswordMailGenContent, sendMail } from "../utils/mail.js"
 import dotenv from "dotenv"
 dotenv.config()
@@ -51,7 +50,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
 
         //send verification email
-        const  verificationUrl = `http://localhost:${process.env.PORT}/api/v1/auth/verify-email/${token}`;
+        const  verificationUrl = `http://localhost:${process.env.PORT}/api/v1/auth/verify-email?=token/${token}`;
         const verificationToken = emailVerificationMailGenContent(user.username, verificationUrl);
         await sendMail({
             email: user.email,
@@ -85,6 +84,8 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 });
 
+
+
 const loginUser = asyncHandler(async (req, res) => {
     //validate the request body
     const { email, password } = req.body;
@@ -106,37 +107,42 @@ const loginUser = asyncHandler(async (req, res) => {
             throw new ApiError(401, "Email not verified")
         }
 
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-            expiresIn: process.env.JWT_EXPIRY
-        })
+        const accessToken = user.genrateAccessToken();
+        const refreshToken = user.genrateRefreshToken();
 
-
-        const accessToken =user.generateAccessToken()
-        const refreshToken =  user.generateRefreshToken()
         user.refreshToken = refreshToken
-        await user.save()
-        //set the refresh token in the cookie
-        res.cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            secure: true,
-            // secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: 24 * 60 * 60 * 1000 // 1 day
-        })
+        await user.save();
 
-        //send response
-        const response = new ApiResponse(200, "Login successful", {
-            user: {
-                id: user._id,
-                email: user.email,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                username: user.username,
-                phone: user.phone,
-            },
-            accessToken,
-            refreshToken
-        });
+        // const userData = await User.findById(user._id).select(
+        //     "-password -emailVerificationToken -emailVerificationExpiry -refreshToken -forgotPasswordToken -forgotPasswordExpiry"
+        // )
+
+        const userData = {
+            id: user._id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            username: user.username,
+        };
+
+
+
+        const cookieOptions = {
+            httpOnly: true,
+            secure:process.env.NODE_ENV,
+            maxAge: 30 * 24 * 60 * 60 * 1000
+        }
+
+        res.cookie("refreshToken",refreshToken,cookieOptions)
+            .cookie("accessToken",accessToken,cookieOptions)
+
+
+
+        //send response 
+        const response = new ApiResponse(200, "Login successful", userData,
+            
+            
+        );
         return res.status(200).json(response)
 
         
@@ -153,6 +159,8 @@ const loginUser = asyncHandler(async (req, res) => {
 
 const logoutUser = asyncHandler(async (req, res) => {
     //validate the request body
+    re
+
 })
 
 
