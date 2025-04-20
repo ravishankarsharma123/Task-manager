@@ -1,7 +1,9 @@
 import {Router} from 'express';
-import {registerUser ,loginUser} from "../controllers/auth.controllers.js"
+import {registerUser ,loginUser,logoutUser, verifyEmail} from "../controllers/auth.controllers.js"
 import {validate} from "../middlewares/validator.middleware.js"
 import {userRegistrationValidator} from "../validators/index.js"
+import isAuth from '../middlewares/isAuth.js';
+
 const router = Router();
 
 
@@ -12,4 +14,8 @@ const router = Router();
 
 router.post('/register',userRegistrationValidator(), validate, registerUser)
 router.post('/login', loginUser)
+
+router.route("/logout").post(isAuth, logoutUser)
+
+fsdarouter.post('/verify-email', verifyEmail)
 export default router

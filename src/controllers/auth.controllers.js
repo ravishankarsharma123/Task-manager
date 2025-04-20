@@ -50,7 +50,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
 
         //send verification email
-        const  verificationUrl = `http://localhost:${process.env.PORT}/api/v1/auth/verify-email?=token/${token}`;
+        const  verificationUrl = `http://localhost:${process.env.PORT}/api/v1/verify-email?token=${token.hashedToken}`;
         const verificationToken = emailVerificationMailGenContent(user.username, verificationUrl);
         await sendMail({
             email: user.email,
@@ -59,9 +59,9 @@ const registerUser = asyncHandler(async (req, res) => {
         });
         // check if the email was sent successfully
         console.log("Verification email sent successfully")
-        console.log(verificationToken)
-        console.log(user.emailVerificationToken)
-        console.log("rgrigijgi",user.email)
+        // console.log(verificationToken)
+        // console.log(user.emailVerificationToken)
+        // console.log("rgrigijgi",user.email)
         console.log(token)
 
         //send response
@@ -124,48 +124,75 @@ const loginUser = asyncHandler(async (req, res) => {
             lastName: user.lastName,
             username: user.username,
         };
-
-
-
         const cookieOptions = {
             httpOnly: true,
             secure:process.env.NODE_ENV,
             maxAge: 30 * 24 * 60 * 60 * 1000
         }
-
         res.cookie("refreshToken",refreshToken,cookieOptions)
             .cookie("accessToken",accessToken,cookieOptions)
-
-
-
         //send response 
-        const response = new ApiResponse(200, "Login successful", userData,
-            
-            
-        );
+        const response = new ApiResponse(200, "Login successful", userData,);
         return res.status(200).json(response)
-
-        
-      
-        
-        
-        
+  
     } catch (error) {
-        throw new ApiError(500, "Internal Server Error", error.message ,error.stack)   
-        
+        throw new ApiError(500, "Internal Server Error", error.message ,error.stack)    
     }
 })
 
 
 const logoutUser = asyncHandler(async (req, res) => {
     //validate the request body
-    re
+
+    try {
+        const id = req.user._id;
+        if(!id){
+            throw new ApiError(4001, "User not Authenticated")
+        }
+        console.log(id)
+        await User.findById(id).updateOne({"refreshToken" : ''});
+        return res
+        .cookie("refreshToken", "")
+        .cookie("accessToken", "")
+        .status(200).json(new ApiResponse(200, "User logout successful"))
+    } catch (error) {
+        throw new ApiError(500, "Internal Server Error logout faild", error.message ,error.stack)
+        
+    }
+
 
 })
 
 
 const verifyEmail = asyncHandler(async (req, res) => {
     //validate the request body
+    const { token } = req.query;
+    if (!token) {
+        throw new ApiError(400, "Token is required")
+    }
+
+
+    try {
+        const user = await User.findOne({
+            emailVerificationToken: token,
+            emailVerificationTokenExpiry: { $gt: Date.now() },
+        });
+        
+        if (!user) {
+            throw new ApiError(400, "Invalid or expired token")
+        }
+        
+        user.isEmailVerified = true;
+        user.emailVerificationToken = undefined;
+        user.emailVerificationTokenExpiry = undefined;
+        await user.save();
+        return res.status(200).json(new ApiResponse(200, "Email verified successfully"))
+        
+    } catch (error) {
+        console.log(error)
+        throw new ApiError(500, "Internal Server Error", error.message ,error.stack)
+        
+    }
 })
 
 
@@ -190,9 +217,11 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 })
 
 const getCurrentUser = asyncHandler(async (req, res) => {
+
     //validate the request body
+
 })
 
 
 
-export {registerUser, loginUser}
+export {registerUser, loginUser, logoutUser, verifyEmail, resendVerificationEmail, refreshAccessToken, forgotPasswordRequest, changeCurrentPassword, getCurrentUser}
