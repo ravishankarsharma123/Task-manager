@@ -4,6 +4,7 @@ import { ApiResponse } from "../utils/api-respose.js";
 import {userLoginValidator, userRegistrationValidator} from "../validators/index.js"
 import {User } from "../models/users.models.js"
 import cookieParser from "cookie-parser";
+import jwt from "jsonwebtoken";
 
 import {emailVerificationMailGenContent, forgotPasswordMailGenContent, sendMail } from "../utils/mail.js"
 import dotenv from "dotenv"
@@ -27,7 +28,7 @@ const registerUser = asyncHandler(async (req, res) => {
         if (existUser) {
             throw new ApiError(409, "User already exists")
         }
-
+        // create a new user
         const user = await  User.create({
             email,
             password,
@@ -47,8 +48,6 @@ const registerUser = asyncHandler(async (req, res) => {
         }
         console.log(user)
         console.log(token)
-
-
         //send verification email
         const  verificationUrl = `http://localhost:${process.env.PORT}/api/v1/verify-email?token=${token.hashedToken}`;
         const verificationToken = emailVerificationMailGenContent(user.username, verificationUrl);
@@ -74,15 +73,12 @@ const registerUser = asyncHandler(async (req, res) => {
                 username: user.username,
                 phone: user.phone,
             },
-            
         });
         return res.status(201).json(response)
-
-
     } catch (error) {
         throw new ApiError(500, "Internal Server Error", error.message ,error.stack)   
     }
-});
+}); //Done✔
 
 
 
@@ -138,7 +134,7 @@ const loginUser = asyncHandler(async (req, res) => {
     } catch (error) {
         throw new ApiError(500, "Internal Server Error", error.message ,error.stack)    
     }
-})
+ }) //Done✔
 
 
 const logoutUser = asyncHandler(async (req, res) => {
@@ -193,27 +189,162 @@ const verifyEmail = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Internal Server Error", error.message ,error.stack)
         
     }
-})
+}) //Done✔
 
 
 
 const resendVerificationEmail = asyncHandler(async (req, res) => {
     //validate the request body
-})
+    const {email} = req.body;
+    if (!email){
+        throw new ApiError(400, "Email is required")
+    }
+    try {
+        const user = await User.findOne({email});
+        if (!user){
+            throw new ApiError(404, "User not found")
+        }
+        if (user.isEmailVerified){
+            throw new ApiError(400, "Email already verified")
+        }
+        const token = await user.generateTemporaryToken()
+        user.emailVerificationToken = token.hashedToken
+        user.emailVerificationTokenExpiry = token.expiry
+        await user.save()
+        //send verification email
+        const  verificationUrl = `http://localhost:${process.env.PORT}/api/v1/verify-email?token=${token.hashedToken}`;
+        await sendMail({
+            email: user.email,
+            subject: "Email Verification",
+            mailGenContent: emailVerificationMailGenContent(user.username, verificationUrl)
+        });
+        
+    } catch (error) {
+        throw new ApiError(500, "Internal Server Error", error.message ,error.stack)
+        
+    }
 
-
+}) //Done✔
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
     //validate the request body
-})
+    const {refreshToken} = req.cookies;
+    console.log(refreshToken)
+    if (!refreshToken) {
+        throw new ApiError(401, "Refresh token not found")
+    }
+    let decoded
+    try {
+        decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET)
+        const user = await User.findById(decoded._id).select("+refreshToken")
+        if (!user){
+            throw new ApiError(404, "User not found")
+        }
+        if (user.refreshToken !== refreshToken){
+            throw new ApiError(401, "Invalid refresh token")
+        }
+        const accessToken = user.genrateAccessToken()
+        const newRefrenshToken = user.genrateRefreshToken()
+        //update the refresh token in the database
+        user.refreshToken = newRefrenshToken;
+        await user.save();
+        //set the refresh token in the cookie
+        const cookieOptions = {
+            httpOnly: true,
+            secure:process.env.NODE_ENV,
+            maxAge: 30 * 24 * 60 * 60 * 1000
+        }
+        res.cookie("refreshToken", newRefrenshToken, cookieOptions)
+            .cookie("accessToken", accessToken, cookieOptions)
+        //send response
+        const response = new ApiResponse(200, "Access token refreshed successfully", {
+            accessToken,
+            refreshToken: newRefrenshToken,
+            
+        });
+        return res.status(200).json(response)
+
+        
+    } catch (error) {
+        throw new ApiError(500, "Internal Server Error", error.message ,error.stack)
+        
+    }
+}) //Done✔
 
 const forgotPasswordRequest = asyncHandler(async (req, res) => {
     //validate the request body
+    const {email} = req.body;
+    if (!email){
+        throw  new ApiError(400, "Email is required")
+    }
+     try {
+        const user = await User.findOne({email});
+        if (!user){
+            throw new ApiError(404, "User not found")
+        }
+        const token = await user.generateTemporaryToken()
+        user.forgotPasswordToken = token.hashedToken
+        user.forgotPasswordTokenExpiry = token.expiry
+        await user.save()
+        //send verification email
+        const  verificationUrl = `http://localhost:${process.env.PORT}/api/v1/verify-reset-password?token=${token.hashedToken}`;
+        await sendMail({
+            email: user.email,
+            subject: "Password Reset",
+            mailGenContent: forgotPasswordMailGenContent(user.username, verificationUrl)
+        });
+        //send response
+        const response = new ApiResponse(200, "Password reset email sent successfully", {
+            message: "Password reset email sent successfully",
+        });
+        return res.status(200).json(response)
+
+        
+     } catch (error) {
+        throw new ApiError(500, "Internal Server Error", error.message ,error.stack)
+        
+     }
+}); //Done✔
+
+const resetForgotPasswordHandler = asyncHandler(async (req, res) => {
+
+    const {token } = req.query;
+    const {password} = req.body;
+    try {
+
+        const hashedToken = crypto.createHash("sha256").updated(token).digest("hex");
+        const user = await User.findOne({forgotPasswordToken,
+            $and: [
+                {forgotPasswordToken: hashedToken},
+                {forgotPasswordTokenExpiry: {$gt: Date.now()}}
+            ]
+        })
+        // const user = await User.findOne({forgotPasswordToken: token})
+        // console.log(user)
+        // if (!user){
+        //     throw new ApiError(404, "User not ok found") 
+        // }
+        // user.password = password;
+        // await  user.save();
+        // const response = new ApiResponse(200, "Password updated....✔", {
+            
+            
+        // });
+        // return res.status(200).json(response)
+
+         
+
+        
+    } catch (error) {
+        throw new ApiError(500, "Internal Server Error", error.message ,error.stack)
+    }
+
 })
 
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
     //validate the request body
+
 })
 
 const getCurrentUser = asyncHandler(async (req, res) => {
@@ -224,4 +355,14 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 
 
 
-export {registerUser, loginUser, logoutUser, verifyEmail, resendVerificationEmail, refreshAccessToken, forgotPasswordRequest, changeCurrentPassword, getCurrentUser}
+export {registerUser, 
+    loginUser, 
+    logoutUser, 
+    verifyEmail, 
+    resendVerificationEmail, 
+    refreshAccessToken, 
+    forgotPasswordRequest, 
+    changeCurrentPassword, 
+    getCurrentUser,
+    resetForgotPasswordHandler
+}
