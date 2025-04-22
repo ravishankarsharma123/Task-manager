@@ -108,9 +108,9 @@ userSchema.methods.genrateAccessToken = function (){
             isAdmin: this.isAdmin,
 
         },
-        process.env.ACCESS_TOKEN_SECRET,
+        process.env.JWT_SECRET,
         {
-            expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+            expiresIn: process.env.JWT_EXPIRES_IN,
         }
     )
 };
@@ -121,9 +121,9 @@ userSchema.methods.genrateRefreshToken = function (){
             _id: this._id,
             email: this.email,
         },
-        process.env.REFRESH_TOKEN_SECRET,
+        process.env.COOKIE_SECRET,
         {
-            expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+            expiresIn: process.env.COOKIE_EXPIRES_IN,
         }
     )
 };

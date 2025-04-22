@@ -312,29 +312,19 @@ const resetForgotPasswordHandler = asyncHandler(async (req, res) => {
     const {password} = req.body;
     try {
 
-        const hashedToken = crypto.createHash("sha256").updated(token).digest("hex");
-        const user = await User.findOne({forgotPasswordToken,
-            $and: [
-                {forgotPasswordToken: hashedToken},
-                {forgotPasswordTokenExpiry: {$gt: Date.now()}}
-            ]
-        })
+        // const hashedToken = crypto.createHash("sha256").updated(token).digest("hex");
+        const user = await User.findOne({forgotPasswordToken: token, forgotPasswordTokenExpiry: {$gt: Date.now()}})
         // const user = await User.findOne({forgotPasswordToken: token})
-        // console.log(user)
-        // if (!user){
-        //     throw new ApiError(404, "User not ok found") 
-        // }
-        // user.password = password;
-        // await  user.save();
-        // const response = new ApiResponse(200, "Password updated....✔", {
-            
-            
-        // });
-        // return res.status(200).json(response)
-
-         
-
-        
+        console.log(user)
+        if (!user){
+            throw new ApiError(404, "User not ok found") 
+        }
+        user.password = password;
+        await  user.save();
+        const response = new ApiResponse(200, "Password updated....✔", {
+            "message": "password updated successfuly"
+        });
+        return res.status(200).json(response)
     } catch (error) {
         throw new ApiError(500, "Internal Server Error", error.message ,error.stack)
     }
