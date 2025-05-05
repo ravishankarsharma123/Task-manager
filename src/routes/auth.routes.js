@@ -7,7 +7,8 @@ import {
     resendVerificationEmail,
     refreshAccessToken,
     forgotPasswordRequest,
-    resetForgotPasswordHandler
+    resetForgotPasswordHandler,
+    getCurrentUser
 } from "../controllers/auth.controllers.js"
 import {validate} from "../middlewares/validator.middleware.js"
 import {userRegistrationValidator} from "../validators/index.js"
@@ -23,12 +24,12 @@ const router = Router();
 
 router.post('/register',userRegistrationValidator(), validate, registerUser)
 router.post('/login', loginUser)
-
 router.route("/logout").post(isAuth, logoutUser)
-
 router.post('/verify-email', verifyEmail)
 router.post('/resend-verification-email', resendVerificationEmail)
 router.post('/refresh-token', refreshAccessToken)
 router.post("/reset-password",forgotPasswordRequest)
 router.post("/verify-reset-password",resetForgotPasswordHandler)
+router.post("/change-password",isAuth,resetForgotPasswordHandler)
+router.get("/me", isAuth, getCurrentUser)
 export default router

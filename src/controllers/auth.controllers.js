@@ -49,7 +49,7 @@ const registerUser = asyncHandler(async (req, res) => {
         console.log(user)
         console.log(token)
         //send verification email
-        const  verificationUrl = `http://localhost:${process.env.PORT}/api/v1/verify-email?token=${token.hashedToken}`;
+        const  verificationUrl = `${process.env.BASE_URL}/verify-email?token=${token.hashedToken}`;
         const verificationToken = emailVerificationMailGenContent(user.username, verificationUrl);
         await sendMail({
             email: user.email,
@@ -137,6 +137,7 @@ const loginUser = asyncHandler(async (req, res) => {
  }) //Done✔
 
 
+ 
 const logoutUser = asyncHandler(async (req, res) => {
     //validate the request body
 
@@ -318,7 +319,7 @@ const resetForgotPasswordHandler = asyncHandler(async (req, res) => {
                 {forgotPasswordToken: hashedToken},
                 {forgotPasswordTokenExpiry: {$gt: Date.now()}}
             ]
-        })
+        });
         // const user = await User.findOne({forgotPasswordToken: token})
         // console.log(user)
         // if (!user){
@@ -344,12 +345,55 @@ const resetForgotPasswordHandler = asyncHandler(async (req, res) => {
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
     //validate the request body
+    const {email, password,newPassword, confirmPassword} = req.body;
+    try {
+        if(!password || !email){
+            throw new ApiError(404, "All fields are required")
+        }
+        const user = await User.findOne({email}).select("+password")
+        if (!user){
+            throw new ApiError(404, "User not found")
+        }
+        const isPasswordMatched = await user.isPasswordMatched(password)
+        if (!isPasswordMatched) {
+            throw new ApiError(401, "Invalid credentials")
+        }
+        if (newPassword !== confirmPassword){
+            throw new ApiError(401, "Password do not match")
+        }
+        user.password = newPassword;
+        await user.save();
+        const response = new ApiResponse(200, "Password updated successfully", {
+            message: "Password updated successfully",
+        });
+        return res.status(200).json(response)
+
+        
+    } catch (error) {
+        throw new ApiError(500, "Internal Server Error", error.message ,error.stack)
+    }
 
 })
 
 const getCurrentUser = asyncHandler(async (req, res) => {
 
     //validate the request body
+    const id = req.user._id;
+    if (!id) {
+        throw new ApiError(401, "User not authenticated")
+    }
+    try {
+        const user = await User.findById(id).select("-password -emailVerificationToken -emailVerificationExpiry -refreshToken -forgotPasswordToken -forgotPasswordExpiry")
+        if (!user) {
+            throw new ApiError(404, "User not found")
+        }
+        const response = new ApiResponse(200, "User fetched successfully", user)
+        return res.status(200).json(response)
+        
+    } catch (error) {
+        throw new ApiError(500, "Internal Server Error", error.message ,error.stack)
+        
+    }
 
 })
 
@@ -365,4 +409,6 @@ export {registerUser,
     changeCurrentPassword, 
     getCurrentUser,
     resetForgotPasswordHandler
+    
+
 }
