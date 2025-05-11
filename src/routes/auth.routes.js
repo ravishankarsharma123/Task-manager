@@ -8,7 +8,8 @@ import {
     refreshAccessToken,
     forgotPasswordRequest,
     resetForgotPasswordHandler,
-    getCurrentUser
+    getCurrentUser,
+    changeCurrentPassword
 } from "../controllers/auth.controllers.js"
 import {validate} from "../middlewares/validator.middleware.js"
 import {userRegistrationValidator} from "../validators/index.js"
@@ -30,6 +31,6 @@ router.post('/resend-verification-email', resendVerificationEmail)
 router.post('/refresh-token', refreshAccessToken)
 router.post("/reset-password",forgotPasswordRequest)
 router.post("/verify-reset-password",resetForgotPasswordHandler)
-router.post("/change-password",isAuth,resetForgotPasswordHandler)
+router.post("/change-password",isAuth,changeCurrentPassword)
 router.get("/me", isAuth, getCurrentUser)
 export default router

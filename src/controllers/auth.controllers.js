@@ -10,9 +10,6 @@ import {emailVerificationMailGenContent, forgotPasswordMailGenContent, sendMail 
 import dotenv from "dotenv"
 dotenv.config()
 
-
-
-
 const registerUser = asyncHandler(async (req, res) => {
 
     //validate the request body
@@ -80,8 +77,6 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 }); //Done✔
 
-
-
 const loginUser = asyncHandler(async (req, res) => {
     //validate the request body
     const { email, password } = req.body;
@@ -137,7 +132,6 @@ const loginUser = asyncHandler(async (req, res) => {
  }) //Done✔
 
 
- 
 const logoutUser = asyncHandler(async (req, res) => {
     //validate the request body
 
@@ -159,7 +153,6 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 
 })
-
 
 const verifyEmail = asyncHandler(async (req, res) => {
     //validate the request body
@@ -191,8 +184,6 @@ const verifyEmail = asyncHandler(async (req, res) => {
         
     }
 }) //Done✔
-
-
 
 const resendVerificationEmail = asyncHandler(async (req, res) => {
     //validate the request body
@@ -288,7 +279,7 @@ const forgotPasswordRequest = asyncHandler(async (req, res) => {
         user.forgotPasswordTokenExpiry = token.expiry
         await user.save()
         //send verification email
-        const  verificationUrl = `http://localhost:${process.env.PORT}/api/v1/verify-reset-password?token=${token.hashedToken}`;
+        const  verificationUrl = `${process.env.BASE_URL}/verify-reset-password?token=${token.hashedToken}`;
         await sendMail({
             email: user.email,
             subject: "Password Reset",
@@ -313,25 +304,25 @@ const resetForgotPasswordHandler = asyncHandler(async (req, res) => {
     const {password} = req.body;
     try {
 
-        const hashedToken = crypto.createHash("sha256").updated(token).digest("hex");
-        const user = await User.findOne({forgotPasswordToken,
-            $and: [
-                {forgotPasswordToken: hashedToken},
-                {forgotPasswordTokenExpiry: {$gt: Date.now()}}
-            ]
-        });
-        // const user = await User.findOne({forgotPasswordToken: token})
-        // console.log(user)
-        // if (!user){
-        //     throw new ApiError(404, "User not ok found") 
-        // }
-        // user.password = password;
-        // await  user.save();
-        // const response = new ApiResponse(200, "Password updated....✔", {
-            
-            
+        // const hashedToken = crypto.createHash("sha256").updated(token).digest("hex");
+        // const user = await User.findOne({forgotPasswordToken,
+        //     $and: [
+        //         {forgotPasswordToken: hashedToken},
+        //         {forgotPasswordTokenExpiry: {$gt: Date.now()}}
+        //     ]
         // });
-        // return res.status(200).json(response)
+        const user = await User.findOne({forgotPasswordToken: token, forgotPasswordTokenExpiry: {$gt: Date.now()}})
+        console.log(user)
+        if (!user){
+            throw new ApiError(404, "User not found")
+        }
+        
+        user.password = password;
+        await  user.save();
+        const response = new ApiResponse(200, "Password updated....✔", {
+            message: "Password updated successfully",  
+        });
+        return res.status(200).json(response)
 
          
 
@@ -341,7 +332,6 @@ const resetForgotPasswordHandler = asyncHandler(async (req, res) => {
     }
 
 })
-
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
     //validate the request body
@@ -373,7 +363,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Internal Server Error", error.message ,error.stack)
     }
 
-})
+}) //Done✔
 
 const getCurrentUser = asyncHandler(async (req, res) => {
 
@@ -395,9 +385,7 @@ const getCurrentUser = asyncHandler(async (req, res) => {
         
     }
 
-})
-
-
+}) //Done✔
 
 export {registerUser, 
     loginUser, 
