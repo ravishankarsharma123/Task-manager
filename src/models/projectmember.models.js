@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, {Schema} from "mongoose";
 import { AvailableUserRoles, UserRolesEnum } from "../utils/constants.js";
 
 

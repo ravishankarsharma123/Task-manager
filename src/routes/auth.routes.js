@@ -12,7 +12,7 @@ import {
     changeCurrentPassword
 } from "../controllers/auth.controllers.js"
 import {validate} from "../middlewares/validator.middleware.js"
-import {userRegistrationValidator} from "../validators/index.js"
+import {userRegistrationValidator, userLoginValidator} from "../validators/index.js"
 import isAuth from '../middlewares/isAuth.js';
 
 const router = Router();
@@ -24,7 +24,7 @@ const router = Router();
 
 
 router.post('/register',userRegistrationValidator(), validate, registerUser)
-router.post('/login', loginUser)
+router.post('/login',userLoginValidator(), validate, loginUser)
 router.route("/logout").post(isAuth, logoutUser)
 router.post('/verify-email', verifyEmail)
 router.post('/resend-verification-email', resendVerificationEmail)
