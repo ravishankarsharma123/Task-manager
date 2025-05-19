@@ -14,7 +14,7 @@ const router = Router();
 
 router.route("/").get(isAuth, getProjects)
 router.route("/:projectId").get(isAuth, getProjectById)
-router.route("/new-project").post(isAuth,projectValidator(), validate,creatProject)
+router.route("/new-project").post(isAuth, projectValidator(), validate, creatProject)
 
 
 

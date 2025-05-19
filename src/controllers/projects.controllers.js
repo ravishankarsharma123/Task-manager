@@ -4,8 +4,9 @@ import {User} from "../models/users.models.js"
 import ApiError from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/api-respose.js"
 import mongoose from "mongoose";
-import { PojectMember } from "../models/projectmember.models.js";
+import { ProjectMember } from "../models/projectmember.models.js";
 import { UserRolesEnum } from "../utils/constants.js";
+import { withTransactionSession } from "../services/transaction.sevices.js";
 
 
 
@@ -18,16 +19,19 @@ const getProjects = asyncHandler(async (req, res) =>{
         if(!projects){
             throw new ApiError(404, "not found", "no projects found")
         }
-         return res.status(200).json({
-            status: "success",
-            message: "projects found✔",
-            projects
-         })
+        if(projects.length === 0){
+            return res.status(404).json(
+                new ApiResponse(404, "not found", "no projects found")   
+            )
+        }
+         return res.status(200).json(
+          new ApiResponse(200, "success", "projects found✔", projects) 
+         )
          
     } catch (error) {
         throw new ApiError(500, "internal server error", error.message)
     }   
-})
+}) //Done ✔
 
 
 const getProjectById = asyncHandler(async (req, res) =>{
@@ -78,10 +82,11 @@ const getProjectById = asyncHandler(async (req, res) =>{
 
          );
     } catch (error) {
+        console.log(error)
         throw new ApiError(500, "internal server error", error.message)
         
     }    
-})
+}) //not working yet i will fix it later
 
 
 const creatProject = asyncHandler(async (req, res) =>{
@@ -100,22 +105,33 @@ const creatProject = asyncHandler(async (req, res) =>{
             throw new ApiError(409, "conflict", "project already exists")
         }
         const project = await withTransactionSession(async (session) => {
-            const [newProject]= await project.crreate([{
-                name,
-                description,
-                createBy: _id
-            }], {session});
-            await PojectMember.create([{
-                user: _id,
-                project: newProject._id,
-                role: UserRolesEnum.PROJECT_ADMIN
-            }], {session});
-            return newProject;
-        })
+        
+            try {
+                const [newProject] = await Project.create([{
+                    name,
+                    description,
+                    createBy: _id
+                }], {session});
+                await ProjectMember.create([{
+                    user: _id,
+                    project: newProject._id,
+                    role: UserRolesEnum.PROJECT_ADMIN
+                }], {session});
+                console.log("------------", newProject)
+                return newProject;
+                
+            } catch (error) {
+                console.log("__________________", error)
+                throw new ApiError(500, "internal server error", "project not created")
+                
+            }
+        });
+    
         // save the project to the database
 
+        console.log("************project************", project)
         if(!project){
-            throw new ApiError(500, "internal server error", "project not created")
+        throw new ApiError(500, "project not fouund error", "project not created")
         }
         return res.status(201).json(
             new ApiResponse(201, "success", "project created✔", project)
@@ -124,6 +140,7 @@ const creatProject = asyncHandler(async (req, res) =>{
 
         
     } catch (error) {
+        console.log(" ggggggggggggggg",error)
         throw new ApiError(500, "internal server error", error.message)
         
     }

@@ -62,13 +62,13 @@ const projectValidator = () =>{
         .notEmpty().withMessage('Description is required'),
 
         // createBy validation
-        body('createBy')
-        .trim()
-        .notEmpty().withMessage('CreateBy is required'),
+        // body('createBy')
+        // .trim()
+        // .notEmpty().withMessage('CreateBy is required'),
     ]
 }
 
-projectMemberRoleValidator = () =>{
+const projectMemberRoleValidator = () =>{
     return [
         // role validation
         body('role')
@@ -85,4 +85,4 @@ projectMemberRoleValidator = () =>{
 
 
 
-export {userRegistrationValidator, userLoginValidator, projectValidator}
+export {userRegistrationValidator, userLoginValidator, projectValidator,projectMemberRoleValidator}
