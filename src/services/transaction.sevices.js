@@ -4,7 +4,7 @@ import ApiError from "../utils/ApiError.js";
 
 
 
-const withTransactionSession = asyncHandler(async (serviceFunction) =>{
+const withTransactionSession = async (serviceFunction) =>{
     const session = await mongoose.startSession();
     try {
         session.startTransaction();
@@ -22,6 +22,6 @@ const withTransactionSession = asyncHandler(async (serviceFunction) =>{
     } finally {
         session.endSession();
     }
-})
+}
 
 export {withTransactionSession};

@@ -24,8 +24,12 @@ const getProjects = asyncHandler(async (req, res) =>{
                 new ApiResponse(404, "not found", "no projects found")   
             )
         }
+        console.log("************projects************", projects[0]);
+
          return res.status(200).json(
-          new ApiResponse(200, "success", "projects found✔", projects) 
+          new ApiResponse(200, "projects found✔", projects,{
+            message: "projects found😁😁😁",
+          }) 
          )
          
     } catch (error) {
@@ -77,22 +81,24 @@ const getProjectById = asyncHandler(async (req, res) =>{
         if(!project){
             throw new ApiError(404, "not found", "no project found")
         }
-         return res.status(200).json(
-            new ApiResponse(200, "success", "project found✔", project)
-
+        console.log("************project************", project);
+        
+         return res.status(200).json( 
+            new ApiResponse(200, "project found✔", project)
          );
+
     } catch (error) {
         console.log(error)
         throw new ApiError(500, "internal server error", error.message)
         
     }    
-}) //not working yet i will fix it later
+}) //not working yet i will fix it later //Done ✔ all woking fine
 
 
 const creatProject = asyncHandler(async (req, res) =>{
 
     const{name, description} = req.body
-    const { _id } = req.user?._id // destructure the user id from the request object if it exists if not, it will be undefined
+    const _id  = req.user?._id // destructure the user id from the request object if it exists if not, it will be undefined
     if(!name || !description){
         throw new ApiError(400, "bad request", "name and description are required")
     }
@@ -117,7 +123,7 @@ const creatProject = asyncHandler(async (req, res) =>{
                     project: newProject._id,
                     role: UserRolesEnum.PROJECT_ADMIN
                 }], {session});
-                console.log("------------", newProject)
+                
                 return newProject;
                 
             } catch (error) {
@@ -144,13 +150,16 @@ const creatProject = asyncHandler(async (req, res) =>{
         throw new ApiError(500, "internal server error", error.message)
         
     }
-})
+}) //Done ✔😁
 
 const updateProjects = asyncHandler(async (req, res) =>{
+
+
     
 })
 
 const deleteProject = asyncHandler(async (req, res) =>{
+    
     
 })
 
