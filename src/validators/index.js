@@ -1,5 +1,6 @@
 import e from 'cors';
 import {body} from 'express-validator';
+import {AvailableUserRoles} from "../utils/constants.js";
 
 
 
@@ -74,7 +75,7 @@ const projectMemberRoleValidator = () =>{
         body('role')
         .trim()
         .notEmpty().withMessage('Role is required')
-        .isIn(['admin', 'member']).withMessage('Role must be either admin or member')
+        .isIn(AvailableUserRoles).withMessage('Role must be either admin or member')
     ]
 }
 

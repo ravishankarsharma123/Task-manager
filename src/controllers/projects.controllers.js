@@ -140,7 +140,7 @@ const creatProject = asyncHandler(async (req, res) =>{
         throw new ApiError(500, "project not fouund error", "project not created")
         }
         return res.status(201).json(
-            new ApiResponse(201, "success", "project created✔", project)
+            new ApiResponse(201, "project created✔", project)
         )
 
 
@@ -153,10 +153,49 @@ const creatProject = asyncHandler(async (req, res) =>{
 }) //Done ✔😁
 
 const updateProjects = asyncHandler(async (req, res) =>{
+    const {projectId} = req.params
+    const {name, description} = req.body
+    const userId = req.user._id
+    const projectMember = await ProjectMember.validateUserRolesForProjectUpdate(
+        userId,
+        projectId
+    )
+    if(!projectMember){
+        throw new ApiError(403, "you are not allowed to update this project", "user is not a project admin")
+    }
+    try {
+        const project = await Project.findByIdAndUpdate(
+            {
+                _id: projectId,
+            },
+            {
+                $set:{
+                    name,
+                    description
+                }
+            },
+            {
+                new: true,
+            } // this will return the updated project new project
+        )
+        if(!project){
+            throw new ApiError(404, "not found", "project not found faild to update")
+        }
+        return res.status(200).json(
+           
+            new ApiResponse(200, "project updated✔", project)
+        )
+
+        
+    } catch (error) {
+        console.log("___________________error__________", error)
+        throw new ApiError(500, "internal server error for update project", error.message)
+        
+    }
 
 
     
-})
+}) //Done ✔😁
 
 const deleteProject = asyncHandler(async (req, res) =>{
     

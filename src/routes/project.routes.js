@@ -1,7 +1,8 @@
 import {Router} from 'express';
 import {getProjects,
     getProjectById,
-    creatProject
+    creatProject,
+    updateProjects,
 } from "../controllers/projects.controllers.js";
 import isAuth from "../middlewares/isAuth.js"
 import {projectValidator} from "../validators/index.js"
@@ -15,6 +16,7 @@ const router = Router();
 router.route("/").get(isAuth, getProjects)
 router.route("/:projectId").post(isAuth, getProjectById)
 router.route("/new-project").post(isAuth, projectValidator(), validate, creatProject)
+router.route("/update-project/:projectId").put(isAuth, projectValidator(), validate, updateProjects)
 
 
 
