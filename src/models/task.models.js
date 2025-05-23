@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import { AvailableTaskStatus, TaskStatusEnum } from "../utils/constants.js";
 
+
 const taskSchema = new mongoose.Schema(
   {
     title: {
@@ -14,7 +15,7 @@ const taskSchema = new mongoose.Schema(
       trim: true,
     },
     project: {
-      typr: Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "Project",
       required: true,
     },

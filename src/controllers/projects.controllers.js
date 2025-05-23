@@ -7,6 +7,8 @@ import mongoose from "mongoose";
 import { ProjectMember } from "../models/projectmember.models.js";
 import { UserRolesEnum } from "../utils/constants.js";
 import { withTransactionSession } from "../services/transaction.sevices.js";
+import {Task} from "../models/task.models.js";
+import {SubTask} from "../models/subtask.models.js";
 
 
 
@@ -99,16 +101,22 @@ const creatProject = asyncHandler(async (req, res) =>{
 
     const{name, description} = req.body
     const _id  = req.user?._id // destructure the user id from the request object if it exists if not, it will be undefined
-    if(!name || !description){
+    console.log("id=========",_id, "name_____________", name, "description__________", description);
+    
+    if(!name || !description ){
         throw new ApiError(400, "bad request", "name and description are required")
     }
+
     try {
         const axistingProject = await Project.findOne({
             name,
             createBy: _id
         })
+        console.log("axistingProject", axistingProject);
+        
         if(axistingProject){
-            throw new ApiError(409, "conflict", "project already exists")
+            return res.status(409).json( 
+                new ApiError(409, "conflict", "project already exists"))
         }
         const project = await withTransactionSession(async (session) => {
         
@@ -123,6 +131,8 @@ const creatProject = asyncHandler(async (req, res) =>{
                     project: newProject._id,
                     role: UserRolesEnum.PROJECT_ADMIN
                 }], {session});
+
+                console.log("newProject", newProject);
                 
                 return newProject;
                 
@@ -165,19 +175,15 @@ const updateProjects = asyncHandler(async (req, res) =>{
     }
     try {
         const project = await Project.findByIdAndUpdate(
-            {
-                _id: projectId,
-            },
-            {
-                $set:{
-                    name,
-                    description
-                }
-            },
-            {
-                new: true,
-            } // this will return the updated project new project
-        )
+            projectId, {name, description}, {new: true}
+            
+            // this will return the updated project new project
+        ).populate({
+            path: "createBy",
+            // select: "firstName lastName email "
+            select: "-password -refreshToken"
+        })
+
         if(!project){
             throw new ApiError(404, "not found", "project not found faild to update")
         }
@@ -199,7 +205,45 @@ const updateProjects = asyncHandler(async (req, res) =>{
 
 const deleteProject = asyncHandler(async (req, res) =>{
     
+    const {projectId} = req.params
+    const userId = req.user._id
+    const projectMember = await ProjectMember.validateUserRolesForProjectUpdate(
+        userId,
+        projectId
+
+    )
+    if(!projectMember){
+        throw new ApiError(403, "you are not allowed to delete this project", "user is not a project admin")
+    }
+    try {
+        const project = await Project.findByIdAndDelete(projectId)
+        if(!project){
+            throw new ApiError(404, "not found", "project not found faild to delete")
+        }
+        // delete all the tasks and subtasks related to the project
+        const taskIds = await Task.find({project: projectId}).select("_id")
+        const deletedProjects = await withTransactionSession(async(session)=>{
+            await Task.deleteMany({project: projectId}, {session})
+            await SubTask.deleteMany({task:{$in: taskIds}}, {session})
+            await ProjectMember.deleteMany({project: projectId}, {session})
+            const  deleteProject = await Project.findByIdAndDelete(projectId).select(projectId).session(session)
+            return deleteProject
     
+        }) 
+
+        if(!deletedProjects){
+            throw new ApiError(404, "project not found faild to delete")
+        }
+        return res.status(200).json(
+            new ApiResponse(200, "project deleted✔", deletedProjects)
+        )
+
+        
+    } catch (error) {
+        console.log("___________________error__________", error)
+        throw new ApiError(500, "internal server error for delete project", error.message)
+        
+    }
 })
 
 const addMemberToProject = asyncHandler(async (req, res) =>{

@@ -42,7 +42,8 @@ projectMemberSchema.statics.validateUserRolesForProjectUpdate = async function(
      }
      return memberRole
    } catch (error) {
-     throw new ApiError(500, "internal server error", error.message)
+    console.log("error in validate user roles", error)
+     throw new ApiError(500, "internal server error for validate user roles", error)
     
    }
 
