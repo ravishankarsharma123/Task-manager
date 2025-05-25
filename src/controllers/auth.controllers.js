@@ -13,11 +13,11 @@ dotenv.config()
 const registerUser = asyncHandler(async (req, res) => {
 
     //validate the request body
-    const { email,password,firstName,lastName ,username, phone,  } = req.body;
+    const { email,password,firstName,lastName ,username, phone,} = req.body;
     if (!email || !password || !firstName || !lastName || !username) { 
             throw new ApiError(400, "All fields are required",)
     }
-
+   
 
     //check if the user already exists  
     try {
@@ -33,6 +33,7 @@ const registerUser = asyncHandler(async (req, res) => {
             lastName,
             username,
             phone,
+            
         });
         //hash the password
         const token = await user.generateTemporaryToken()

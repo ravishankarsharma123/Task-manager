@@ -124,7 +124,9 @@ const creatProject = asyncHandler(async (req, res) =>{
                 const [newProject] = await Project.create([{
                     name,
                     description,
-                    createBy: _id
+                    members: [ _id], // add the user id to the members array
+                    createBy: _id,
+
                 }], {session});
                 await ProjectMember.create([{
                     user: _id,
@@ -244,21 +246,95 @@ const deleteProject = asyncHandler(async (req, res) =>{
         throw new ApiError(500, "internal server error for delete project", error.message)
         
     }
-})
-
+}) //Done ✔😁  but proper not working so will check ltter 
+ 
 const addMemberToProject = asyncHandler(async (req, res) =>{
+    const {projectId, memberId} = req.params;
+    const userId = req.user._id
+
+    const existprojectMember = await ProjectMember.findOne({
+        user: userId,
+        project: projectId,
+        
+    })
+
+    if(!existprojectMember || existprojectMember.role !== UserRolesEnum.PROJECT_ADMIN){
+        throw new ApiError(403, "you are not allowed to add member to this project", "user is not a project admin")
+    }
+
+    try {
+        const newProjectMember = await ProjectMember.create({
+            user: memberId,
+            project: projectId,
+        })
+
+
+        if(!newProjectMember){
+            throw new ApiError(404, "not found", "project member not found faild to add")
+        }
+
+        return res.status(200).json(
+            new ApiResponse(200, "project member added✔", newProjectMember, {
+                message: "project member added successfully"
+            })
+
+        )
+    } catch (error) {
+        console.log("___________________error__________", error)
+        throw new ApiError(500, "internal server error for add member to project", error.message)
+        
+    }
+
+
+
     
-})
+}) //Done ✔😁
+// // i will check later why project member not added to project members array
 
 const getProjectMembers = asyncHandler(async (req, res) =>{
-    
-})
+    const {projectId} = req.params
+    const userId = req.user._id
+    const projectMember = await ProjectMember.validateUserRolesForProjectUpdate(
+        userId,
+        projectId
+    )
+    if(!projectMember){
+        throw new ApiError(403, "you are not allowed to get project members", "user is not a project admin")
+    }
+    try {
+        const projectMembers = await ProjectMember.find({
+            project: projectId
+            // i dont want to send all infromation about the user in want to send only the user id, firstName, lastName, email and role
 
-const updateProjectMember = asyncHandler(async (req, res) =>{
+        }).select("role project user").populate({
+            path: "user",
+            select: "_id firstName lastName email phone username" 
+        }).populate(
+            {
+                path: "project",
+                select: "_id name"
+            }
+        )
+        if(!projectMembers){
+            throw new ApiError(404, "not found", "project members not found faild to get")
+        }
+        return res.status(200).json(
+            new ApiResponse(200, "project members✔", projectMembers)
+        )
+        
+    } catch (error) {
+        console.log("___________________error__________", error)
+        throw new ApiError(500, "internal server error for get all project  project members", error.message)
+        
+    }
     
-})
+}) //Done ✔😁
+
+
 
 const updateMemberRole = asyncHandler(async (req, res) =>{
+    const {projectId, memberId} = req.params
+    const {role} = req.body
     
 })
 
@@ -274,7 +350,6 @@ export {
     deleteProject,
     addMemberToProject,
     getProjectMembers,
-    updateProjectMember,
     updateMemberRole,
     deleteMember
 }

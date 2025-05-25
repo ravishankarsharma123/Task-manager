@@ -4,6 +4,8 @@ import {getProjects,
     creatProject,
     updateProjects,
     deleteProject,
+    addMemberToProject,
+    getProjectMembers
 } from "../controllers/projects.controllers.js";
 import isAuth from "../middlewares/isAuth.js"
 import {projectValidator} from "../validators/index.js"
@@ -19,6 +21,8 @@ router.route("/new-project").post(isAuth, projectValidator(), validate,creatProj
 router.route("/update-project/:projectId").put(isAuth, projectValidator(), validate, updateProjects)
 router.route("/:projectId").post(isAuth, getProjectById)
 router.route("/delete-project/:projectId").delete(isAuth, deleteProject)
+router.route("/:projectId/add-member/:memberId").post(isAuth, addMemberToProject) 
+router.route("/members/:projectId").get(isAuth, getProjectMembers)
 
 
 
