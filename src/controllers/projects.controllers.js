@@ -335,10 +335,50 @@ const getProjectMembers = asyncHandler(async (req, res) =>{
 const updateMemberRole = asyncHandler(async (req, res) =>{
     const {projectId, memberId} = req.params
     const {role} = req.body
+    const userId = req.user._id
+    try {
+        const user = await User.findById(userId).select("isAdmin")
+        if(!user || !user.isAdmin){
+            throw new ApiError(403, "you are not allowed to update this member role", "user is not an admin")
+        }
+        const projectMember = await ProjectMember.validateUserRolesForProjectUpdate(
+            userId,
+            projectId
+        )
+        if(!projectMember || projectMember.role !== UserRolesEnum.PROJECT_ADMIN){
+            throw new ApiError(403, "you are not allowed to update this member role", "user is not a project admin")
+        }
+        const updatedMember = await ProjectMember.findByIdAndUpdate(
+            {project: new mongoose.Types.ObjectId(projectId), user: new mongoose.Types.ObjectId(memberId)},
+            {role},
+            {new: true}
+        ).populate({
+            path: "user",
+            select: "_id firstName lastName email phone username" 
+        }).populate(
+            {
+                path: "project",
+                select: "_id name"
+            }
+        )
+        if(!updatedMember){
+            throw new ApiError(404, "not found", "project member not found faild to update")
+        }
+        return res.status(200).json(
+            new ApiResponse(200, "project member role updated✔", updatedMember, {
+                message: "project member role updated successfully"
+            })
+        )
+    } catch (error) {
+        console.log("___________________error__________", error)
+        throw new ApiError(500, "internal server error for update member role", error.message)
+        
+    }
     
 })
 
 const deleteMember = asyncHandler(async (req, res) =>{
+    
     
 })
 
