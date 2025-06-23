@@ -206,6 +206,7 @@ const updateProjects = asyncHandler(async (req, res) =>{
 }) //Done ✔😁
 
 const deleteProject = asyncHandler(async (req, res) =>{
+    console.log("*************** delete function started ***************")
     
     const {projectId} = req.params
     const userId = req.user._id
@@ -218,17 +219,25 @@ const deleteProject = asyncHandler(async (req, res) =>{
         throw new ApiError(403, "you are not allowed to delete this project", "user is not a project admin")
     }
     try {
-        const project = await Project.findByIdAndDelete(projectId)
+        console.log("***************  i am in try block ***************")
+        const project = await Project.findById(projectId)
+        console.log(" *************** project ***************", project);
         if(!project){
             throw new ApiError(404, "not found", "project not found faild to delete")
         }
         // delete all the tasks and subtasks related to the project
         const taskIds = await Task.find({project: projectId}).select("_id")
+        console.log("*************** taskIds ***************", taskIds);
         const deletedProjects = await withTransactionSession(async(session)=>{
             await Task.deleteMany({project: projectId}, {session})
+            console.log("*************** task deleted ***************");
             await SubTask.deleteMany({task:{$in: taskIds}}, {session})
+            console.log("*************** subtask deleted ***************");
             await ProjectMember.deleteMany({project: projectId}, {session})
-            const  deleteProject = await Project.findByIdAndDelete(projectId).select(projectId).session(session)
+            console.log("*************** project member deleted ***************");
+            const  deleteProject = await Project.findByIdAndDelete(projectId).select("_id").session(session)
+            console.log("*************** project deleted ***************", deleteProject);
+
             return deleteProject
     
         }) 
@@ -242,11 +251,11 @@ const deleteProject = asyncHandler(async (req, res) =>{
 
         
     } catch (error) {
-        console.log("___________________error__________", error)
+        console.log("___________________functoon ended __________", error)
         throw new ApiError(500, "internal server error for delete project", error.message)
         
     }
-}) //Done ✔😁  but proper not working so will check ltter 
+}) //Done ✔😁  TODO 
  
 const addMemberToProject = asyncHandler(async (req, res) =>{
     const {projectId, memberId} = req.params;
@@ -255,6 +264,7 @@ const addMemberToProject = asyncHandler(async (req, res) =>{
     const existprojectMember = await ProjectMember.findOne({
         user: userId,
         project: projectId,
+
         
     })
 
@@ -263,10 +273,26 @@ const addMemberToProject = asyncHandler(async (req, res) =>{
     }
 
     try {
-        const newProjectMember = await ProjectMember.create({
+        const existingMember = await ProjectMember.findOne({
             user: memberId,
             project: projectId,
         })
+        if(existingMember){
+            return res.status(409).json(
+                new ApiError(409, "conflict", "member already exists in this project")
+            )
+        }
+        const newProjectMember = await ProjectMember.create({
+            user: memberId,
+            project: projectId,
+
+
+        })
+        const project = await Project.findByIdAndUpdate(
+            projectId, 
+            {$addToSet: {members: memberId}}, // this will add the member id to the members array if it does not exist
+            {new: true} // this will return the updated project
+        )
 
 
         if(!newProjectMember){
@@ -289,7 +315,7 @@ const addMemberToProject = asyncHandler(async (req, res) =>{
 
     
 }) //Done ✔😁
-// // i will check later why project member not added to project members array
+// // i will check later why project member not added to project members array in project model
 
 const getProjectMembers = asyncHandler(async (req, res) =>{
     const {projectId} = req.params
@@ -303,8 +329,7 @@ const getProjectMembers = asyncHandler(async (req, res) =>{
     }
     try {
         const projectMembers = await ProjectMember.find({
-            project: projectId
-            // i dont want to send all infromation about the user in want to send only the user id, firstName, lastName, email and role
+            project: projectId,
 
         }).select("role project user").populate({
             path: "user",
@@ -333,23 +358,29 @@ const getProjectMembers = asyncHandler(async (req, res) =>{
 
 
 const updateMemberRole = asyncHandler(async (req, res) =>{
+    console.log("*************** update member role function started ***************")
     const {projectId, memberId} = req.params
     const {role} = req.body
     const userId = req.user._id
+    // i am confused about the role validation becouse i thing i write the wring user model so i will check it letter and fix it after some time letter 
     try {
-        const user = await User.findById(userId).select("isAdmin")
-        if(!user || !user.isAdmin){
-            throw new ApiError(403, "you are not allowed to update this member role", "user is not an admin")
+        console.log("*************** update member role function started ***************", projectId, memberId, role)
+       const user = await User.findById(userId)
+        console.log("*************** user ***************", user);
+       if (!user||!user.isAdmin) {
+            throw new ApiError(403, "you are not athourized to update this  role", "user is a project admin or admin")
         }
         const projectMember = await ProjectMember.validateUserRolesForProjectUpdate(
             userId,
             projectId
         )
+        console.log("*************** projectMember ***************", projectMember);
         if(!projectMember || projectMember.role !== UserRolesEnum.PROJECT_ADMIN){
             throw new ApiError(403, "you are not allowed to update this member role", "user is not a project admin")
         }
-        const updatedMember = await ProjectMember.findByIdAndUpdate(
-            {project: new mongoose.Types.ObjectId(projectId), user: new mongoose.Types.ObjectId(memberId)},
+        const updatedMember = await ProjectMember.findOneAndUpdate(
+
+            {project: projectId, user: memberId},
             {role},
             {new: true}
         ).populate({
@@ -375,12 +406,49 @@ const updateMemberRole = asyncHandler(async (req, res) =>{
         
     }
     
-})
+}) // this is not working yet i will fix it later 
 
 const deleteMember = asyncHandler(async (req, res) =>{
+
+    const {projectId, memberId} = req.params
+    const userId = req.user._id 
+    const projectMember = await ProjectMember.validateUserRolesForProjectUpdate(
+        userId,
+        projectId
+    )
+    if (!projectMember){
+        throw new ApiError(403, "you are not allowed to delete this member", "user is not a project admin")     
+    }
+    try {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        const taskIs = await Task.find({
+            assignedTo: memberId,
+            
+        }).select("_id")
+        await Task.deleteMany({assignedTo: memberId}, {session});        
+        await SubTask.deleteMany({task:{$in: taskIs}}, {session});
+        const deletedMember = await ProjectMember.findOneAndDelete(memberId)    
+        console.log("deletedMember", deletedMember);
+        if(!deletedMember){
+            throw new ApiError(404, "not found", "project member not found faild to delete")
+        }
+        await session.commitTransaction();
+        session.endSession();
+        return res.status(200).json(
+            new ApiResponse(200, "project member deleted✔", deletedMember, {
+                message: "project member deleted successfully"
+            })
+        )
+
+    } catch (error) {
+        console.log("___________________error__________", error)
+        throw new ApiError(500, "internal server error for delete member", error.message)
+        
+    }
     
     
-})
+}) //this is not working yet i will fix it later some issue occur in this code i will fix it later
 
 export {
     getProjects,

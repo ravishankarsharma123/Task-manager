@@ -79,6 +79,36 @@ const projectMemberRoleValidator = () =>{
     ]
 }
 
+const taskValidator = () => {
+    return [
+        // title validation
+        body('title')
+        .trim()
+        .isLength({min: 3}).withMessage('Title must be at least 3 characters long')
+        .notEmpty().withMessage('Title is required'),
+
+        // description validation
+        body('description')
+        .trim()
+        .isLength({min: 10}).withMessage('Description must be at least 10 characters long')
+        .notEmpty().withMessage('Description is required'),
+
+        // projectId validation
+        body('projectId')
+        .trim()
+        .notEmpty().withMessage('Project ID is required'),
+
+        // assignedTo validation
+        body('assignedTo')
+        .trim()
+        .notEmpty().withMessage('Assigned To is required'),
+
+        // status validation
+        body('status')
+        .trim()
+        .notEmpty().withMessage('Status is required'),
+    ]
+}
 
 
 
@@ -86,4 +116,5 @@ const projectMemberRoleValidator = () =>{
 
 
 
-export {userRegistrationValidator, userLoginValidator, projectValidator,projectMemberRoleValidator}
+
+export {userRegistrationValidator, userLoginValidator, projectValidator,projectMemberRoleValidator, taskValidator}

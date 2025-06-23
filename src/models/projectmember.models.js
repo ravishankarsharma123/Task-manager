@@ -29,11 +29,15 @@ projectMemberSchema.statics.validateUserRolesForProjectUpdate = async function(
     userId,
     projectId
 ){
+    console.log("validating user roles for project update", userId, projectId)
+
    try {
      const memberRole = await this.findOne({
+        
          user: userId,
          project: projectId
      }).select("role")
+        console.log("memberRole", memberRole)
      if(!memberRole){
          throw new ApiError(403, "user is not a member of this project")
      }
